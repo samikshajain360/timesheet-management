@@ -14,15 +14,18 @@ import CustomDropdown from "@/components/common/CustomDropdown";
 interface Props {
   open: boolean;
   onClose: () => void;
+  onAddTask: (task: { projectName: string; workType: string; description: string; hours: number }) => void;
 }
 
 export default function AddEntryModal({
   open,
   onClose,
+  onAddTask,
 }: Props) {
-  const [hours, setHours] = useState(12);
+  const [hours, setHours] = useState(8);
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedWorkType, setSelectedWorkType] = useState("");
+  const [description, setDescription] = useState("");
 
   const projectOptions = [
     { value: "project1", label: "Project Name" },
@@ -89,6 +92,8 @@ export default function AddEntryModal({
             <textarea
               rows={4}
               placeholder="Write text here ..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               className="w-full rounded-md border border-gray-300 p-3 sm:p-4 outline-none text-sm"
             />
 
@@ -143,7 +148,25 @@ export default function AddEntryModal({
           Cancel
         </button>
 
-        <button onClick={onClose} className="h-9 flex-1 rounded-lg bg-primary-600 text-white text-sm">
+        <button
+          onClick={() => {
+            if (selectedProject && selectedWorkType && description) {
+              onAddTask({
+                projectName: projectOptions.find(p => p.value === selectedProject)?.label || "",
+                workType: workTypeOptions.find(w => w.value === selectedWorkType)?.label || "",
+                description,
+                hours,
+              });
+              setHours(8);
+              setSelectedProject("");
+              setSelectedWorkType("");
+              setDescription("");
+              onClose();
+            }
+          }}
+          className="h-9 flex-1 rounded-lg bg-primary-600 text-white text-sm disabled:opacity-50"
+          disabled={!selectedProject || !selectedWorkType || !description}
+        >
           Add Entry
         </button>
       </DialogActions>

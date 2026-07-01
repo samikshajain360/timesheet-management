@@ -109,6 +109,15 @@ export default function LoginForm() {
                 Sign In
               </Button>
             </div>
+
+            {/* Demo Credentials Hint */}
+            <div className="mt-4">
+              <p className="text-xs font-semibold text-gray-700 mb-2">Demo Credentials</p>
+              <div className="text-xs text-gray-600">
+                <p>email : <span className="font-medium">admin@test.com</span></p>
+                <p>password : <span className="font-medium">123456</span></p>
+              </div>
+            </div>
           </Form>
         )}
       </Formik>

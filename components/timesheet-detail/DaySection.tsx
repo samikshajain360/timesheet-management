@@ -5,6 +5,17 @@ import { Day, Task } from "@/types/propsTypes";
 
 export default function DaySection({ day }: { day: Day }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>(day.tasks);
+
+  const handleAddTask = (newTaskData: { projectName: string; workType: string; description: string; hours: number }) => {
+    const newTask: Task = {
+      id: `${Date.now()}-${Math.random()}`,
+      taskName: newTaskData.description,
+      hours: newTaskData.hours,
+      projectName: newTaskData.projectName,
+    };
+    setTasks([...tasks, newTask]);
+  };
 
   return (
     <>
@@ -14,7 +25,7 @@ export default function DaySection({ day }: { day: Day }) {
         </div>
 
         <div className="flex-1">
-          {day.tasks.map((task: Task) => (
+          {tasks.map((task: Task) => (
             <TaskRow key={task.id} task={task} />
           ))}
 
@@ -27,7 +38,7 @@ export default function DaySection({ day }: { day: Day }) {
         </div>
       </div>
 
-      <AddEntryModal open={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      <AddEntryModal open={isModalOpen} onClose={() => setIsModalOpen(false)} onAddTask={handleAddTask} />
     </>
   );
 }

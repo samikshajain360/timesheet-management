@@ -164,7 +164,7 @@ export default function AddEntryModal({
               onClose();
             }
           }}
-          className="h-9 flex-1 rounded-lg bg-primary-600 text-white text-sm disabled:opacity-50"
+          className="h-9 flex-1 rounded-lg bg-[#1A56DB] text-white text-sm disabled:opacity-50"
           disabled={!selectedProject || !selectedWorkType || !description}
         >
           Add Entry

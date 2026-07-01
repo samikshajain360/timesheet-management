@@ -14,7 +14,7 @@ import CustomDropdown from "@/components/common/CustomDropdown";
 interface Props {
   open: boolean;
   onClose: () => void;
-  onAddTask: (task: { projectName: string; workType: string; description: string; hours: number }) => void;
+  onAddTask?: (task: { projectName: string; workType: string; description: string; hours: number }) => void;
 }
 
 export default function AddEntryModal({
@@ -56,7 +56,7 @@ export default function AddEntryModal({
         </span>
 
         <IconButton onClick={onClose}>
-         <IoIosClose color={"#9CA3AF"} />
+          <IoIosClose color={"#9CA3AF"} />
         </IconButton>
       </DialogTitle>
 
@@ -151,7 +151,7 @@ export default function AddEntryModal({
         <button
           onClick={() => {
             if (selectedProject && selectedWorkType && description) {
-              onAddTask({
+              onAddTask?.({
                 projectName: projectOptions.find(p => p.value === selectedProject)?.label || "",
                 workType: workTypeOptions.find(w => w.value === selectedWorkType)?.label || "",
                 description,

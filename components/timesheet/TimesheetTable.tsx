@@ -181,7 +181,7 @@ export default function TimesheetTable() {
                               router.push(`/timesheets/${item.week}`);
                             }
                           }}
-                          className="text-sm sm:text-base text-primary-600 font-normal transition hover:underline cursor-pointer bg-transparent border-none"
+                          className="text-sm sm:text-base text-[#1A56DB] font-normal transition hover:underline cursor-pointer bg-transparent border-none"
                         >
                           {getActionText(item.status)}
                         </button>

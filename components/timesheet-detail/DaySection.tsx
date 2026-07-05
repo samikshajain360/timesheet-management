@@ -1,22 +1,39 @@
 import TaskRow from "./TaskRow";
 import AddEntryModal from "./AddEntryModal";
 import { useState } from "react";
-import { Day, Task } from "@/types/propsTypes";
+import { Day, Task, Timesheet } from "@/types/propsTypes";
+import {
+  addTimesheetTask,
+  deleteTimesheetTask,
+  updateTimesheetTask,
+} from "@/services/timesheet-detail.service";
 
-export default function DaySection({ day }: { day: Day }) {
+interface DaySectionProps {
+  day: Day;
+  timesheetId: string;
+  onTimesheetDetailChange: (detail: NonNullable<Timesheet["detail"]>) => void;
+}
+
+export default function DaySection({
+  day,
+  timesheetId,
+  onTimesheetDetailChange,
+}: DaySectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>(day.tasks);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  const handleAddTask = (newTaskData: { projectName: string; workType: string; description: string; hours: number }) => {
-    const newTask: Task = {
-      id: `${Date.now()}-${Math.random()}`,
-      taskName: newTaskData.description,
-      hours: newTaskData.hours,
-      projectName: newTaskData.projectName,
-      workType: newTaskData.workType,
-    };
-    setTasks([...tasks, newTask]);
+  const handleAddTask = async (newTaskData: {
+    projectName: string;
+    workType: string;
+    description: string;
+    hours: number;
+  }) => {
+    const updatedDetail = await addTimesheetTask(timesheetId, {
+      dayDate: day.date,
+      ...newTaskData,
+    });
+
+    onTimesheetDetailChange(updatedDetail);
   };
 
   const handleEditTask = (task: Task) => {
@@ -24,33 +41,31 @@ export default function DaySection({ day }: { day: Day }) {
     setIsModalOpen(true);
   };
 
-  const handleUpdateTask = (updatedTask: {
+  const handleUpdateTask = async (updatedTask: {
     id: string;
     projectName: string;
     workType: string;
     description: string;
     hours: number;
   }) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === updatedTask.id
-          ? {
-            ...task,
-            taskName: updatedTask.description,
-            projectName: updatedTask.projectName,
-            workType: updatedTask.workType,
-            hours: updatedTask.hours,
-          }
-          : task
-      )
-    );
+    const updatedDetail = await updateTimesheetTask(timesheetId, {
+      taskId: updatedTask.id,
+      projectName: updatedTask.projectName,
+      workType: updatedTask.workType,
+      description: updatedTask.description,
+      hours: updatedTask.hours,
+    });
 
+    onTimesheetDetailChange(updatedDetail);
     setEditingTask(null);
     setIsModalOpen(false);
   };
 
-  const handleDeleteTask = (taskId: string) => {
-    setTasks(tasks.filter((task) => task.id !== taskId));
+  const handleDeleteTask = async (taskId: string) => {
+    const updatedDetail = await deleteTimesheetTask(timesheetId, taskId);
+
+    onTimesheetDetailChange(updatedDetail);
+
     if (editingTask?.id === taskId) {
       setEditingTask(null);
       setIsModalOpen(false);
@@ -70,7 +85,7 @@ export default function DaySection({ day }: { day: Day }) {
         </div>
 
         <div className="flex-1">
-          {tasks.map((task: Task) => (
+          {day.tasks.map((task: Task) => (
             <TaskRow
               key={task.id}
               task={task}

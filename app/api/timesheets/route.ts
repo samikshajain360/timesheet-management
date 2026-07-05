@@ -1,4 +1,4 @@
-import { timesheets } from "@/mocks/timesheet";
+import { getTimesheetsFromDb } from "@/lib/timesheets";
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 
@@ -9,14 +9,11 @@ const calculateStatus = (totalHours: number, targetHours: number): "COMPLETED" |
 };
 
 export async function GET(request: NextRequest) {
-  await new Promise((resolve) =>
-    setTimeout(resolve, 500)
-  );
-
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get("status");
   const startDate = searchParams.get("startDate");
   const endDate = searchParams.get("endDate");
+  const timesheets = await getTimesheetsFromDb();
 
   // Calculate status for each timesheet based on totalHours
   const timesheetsWithStatus = timesheets.map((timesheet) => ({

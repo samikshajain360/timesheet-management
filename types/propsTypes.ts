@@ -17,6 +17,7 @@ export interface Timesheet {
         taskName: string;
         hours: number;
         projectName: string;
+        workType?: string;
       }>;
     }>;
   };

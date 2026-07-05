@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { IoIosClose, IoIosAdd, IoIosRemove } from "react-icons/io";
 import CustomDropdown from "@/components/common/CustomDropdown";
+import toast from "react-hot-toast";
 
 const PROJECT_OPTIONS = [
   { value: "Project Alpha", label: "Project Alpha" },
@@ -48,8 +49,8 @@ interface TaskFormData {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onAddTask?: (task: TaskFormData) => void;
-  onUpdateTask?: (task: TaskFormData & { id: string }) => void;
+  onAddTask?: (task: TaskFormData) => void | Promise<void>;
+  onUpdateTask?: (task: TaskFormData & { id: string }) => void | Promise<void>;
   taskToEdit?: (TaskFormData & { id: string }) | null;
 }
 
@@ -64,6 +65,7 @@ export default function AddEntryModal({
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedWorkType, setSelectedWorkType] = useState("");
   const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const projectOptions = PROJECT_OPTIONS;
   const workTypeOptions = WORKTYPE_OPTIONS;
@@ -100,7 +102,7 @@ useEffect(() => {
   }
 }, [open, taskToEdit]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedProject || !selectedWorkType || !description) return;
 
     const taskData = {
@@ -113,17 +115,25 @@ useEffect(() => {
       hours,
     };
 
-    if (taskToEdit?.id) {
-      onUpdateTask?.(taskData as TaskFormData & { id: string });
-    } else {
-      onAddTask?.(taskData);
-    }
+    try {
+      setSaving(true);
 
-    setHours(8);
-    setSelectedProject("");
-    setSelectedWorkType("");
-    setDescription("");
-    onClose();
+      if (taskToEdit?.id) {
+        await onUpdateTask?.(taskData as TaskFormData & { id: string });
+      } else {
+        await onAddTask?.(taskData);
+      }
+
+      setHours(8);
+      setSelectedProject("");
+      setSelectedWorkType("");
+      setDescription("");
+      onClose();
+    } catch {
+      toast.error("Unable to save task");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -236,11 +246,11 @@ useEffect(() => {
         <button
           onClick={handleSubmit}
           disabled={
-            !selectedProject || !selectedWorkType || !description
+            saving || !selectedProject || !selectedWorkType || !description
           }
           className="h-9 flex-1 rounded-lg bg-[#1A56DB] text-white text-sm disabled:opacity-50"
         >
-          {taskToEdit ? "Save Changes" : "Add Entry"}
+          {saving ? "Saving..." : taskToEdit ? "Save Changes" : "Add Entry"}
         </button>
       </DialogActions>
     </Dialog>

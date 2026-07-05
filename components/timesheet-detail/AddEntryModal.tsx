@@ -7,33 +7,124 @@ import {
   DialogActions,
   IconButton,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { IoIosClose, IoIosAdd, IoIosRemove } from "react-icons/io";
 import CustomDropdown from "@/components/common/CustomDropdown";
+
+const PROJECT_OPTIONS = [
+  { value: "Project Alpha", label: "Project Alpha" },
+  { value: "Project Beta", label: "Project Beta" },
+  { value: "Project Gamma", label: "Project Gamma" },
+  { value: "Project Delta", label: "Project Delta" },
+  { value: "Project Epsilon", label: "Project Epsilon" },
+  { value: "Project Zeta", label: "Project Zeta" },
+  { value: "Project Omega", label: "Project Omega" },
+  { value: "Project Mobile", label: "Project Mobile" },
+  { value: "Project DevOps", label: "Project DevOps" },
+  { value: "Project Security", label: "Project Security" },
+  { value: "Project Data", label: "Project Data" },
+  { value: "Project UX", label: "Project UX" },
+  { value: "Project New", label: "Project New" },
+  { value: "Project Backend", label: "Project Backend" },
+  { value: "Project Web", label: "Project Web" },
+  { value: "Project Maintenance", label: "Project Maintenance" },
+];
+
+const WORKTYPE_OPTIONS = [
+  {
+    value: "bug-fixes",
+    label: "Bug fixes",
+  },
+];
+
+interface TaskFormData {
+  id?: string;
+  projectName: string;
+  workType: string;
+  description: string;
+  hours: number;
+}
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onAddTask?: (task: { projectName: string; workType: string; description: string; hours: number }) => void;
+  onAddTask?: (task: TaskFormData) => void;
+  onUpdateTask?: (task: TaskFormData & { id: string }) => void;
+  taskToEdit?: (TaskFormData & { id: string }) | null;
 }
 
 export default function AddEntryModal({
   open,
   onClose,
   onAddTask,
+  onUpdateTask,
+  taskToEdit,
 }: Props) {
   const [hours, setHours] = useState(8);
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedWorkType, setSelectedWorkType] = useState("");
   const [description, setDescription] = useState("");
 
-  const projectOptions = [
-    { value: "project1", label: "Project Name" },
-  ];
+  const projectOptions = PROJECT_OPTIONS;
+  const workTypeOptions = WORKTYPE_OPTIONS;
+useEffect(() => {
+  if (!open) return;
 
-  const workTypeOptions = [
-    { value: "bug-fixes", label: "Bug fixes" },
-  ];
+  if (taskToEdit) {
+    // Find matching project by label
+    const project = PROJECT_OPTIONS.find(
+      (p) => p.label === taskToEdit.projectName
+    );
+
+    setSelectedProject(project?.value ?? "");
+
+    // Existing tasks don't have workType, so default to first option
+    if ("workType" in taskToEdit && taskToEdit.workType) {
+      const workType = WORKTYPE_OPTIONS.find(
+        (w) => w.label === taskToEdit.workType
+      );
+
+      setSelectedWorkType(workType?.value ?? WORKTYPE_OPTIONS[0].value);
+    } else {
+      setSelectedWorkType(WORKTYPE_OPTIONS[0].value);
+    }
+
+    setDescription(taskToEdit.description ?? "");
+    setHours(taskToEdit.hours ?? 8);
+  } else {
+    // Reset form for Add mode
+    setHours(8);
+    setSelectedProject("");
+    setSelectedWorkType(WORKTYPE_OPTIONS[0].value);
+    setDescription("");
+  }
+}, [open, taskToEdit]);
+
+  const handleSubmit = () => {
+    if (!selectedProject || !selectedWorkType || !description) return;
+
+    const taskData = {
+      id: taskToEdit?.id,
+      projectName:
+        PROJECT_OPTIONS.find((p) => p.value === selectedProject)?.label || "",
+      workType:
+        WORKTYPE_OPTIONS.find((w) => w.value === selectedWorkType)?.label || "",
+      description,
+      hours,
+    };
+
+    if (taskToEdit?.id) {
+      onUpdateTask?.(taskData as TaskFormData & { id: string });
+    } else {
+      onAddTask?.(taskData);
+    }
+
+    setHours(8);
+    setSelectedProject("");
+    setSelectedWorkType("");
+    setDescription("");
+    onClose();
+  };
 
   return (
     <Dialog
@@ -52,11 +143,11 @@ export default function AddEntryModal({
       {/* Header */}
       <DialogTitle className="flex items-center justify-between border-b border-gray-300 h-[60px] sm:h-[67px] px-4">
         <span className="text-[16px] sm:text-[18px] font-semibold text-gray-900">
-          Add New Entry
+          {taskToEdit ? "Edit Entry" : "Add New Entry"}
         </span>
 
         <IconButton onClick={onClose}>
-          <IoIosClose color={"#9CA3AF"} />
+          <IoIosClose color="#9CA3AF" />
         </IconButton>
       </DialogTitle>
 
@@ -91,9 +182,9 @@ export default function AddEntryModal({
 
             <textarea
               rows={4}
-              placeholder="Write text here ..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="Write text here ..."
               className="w-full rounded-md border border-gray-300 p-3 sm:p-4 outline-none text-sm"
             />
 
@@ -111,14 +202,10 @@ export default function AddEntryModal({
             <div className="flex w-fit overflow-hidden rounded-md border border-gray-300">
               <button
                 type="button"
-                onClick={() =>
-                  setHours((prev) =>
-                    Math.max(0, prev - 1)
-                  )
-                }
+                onClick={() => setHours((prev) => Math.max(0, prev - 1))}
                 className="h-9 w-8 flex items-center justify-center border-r border-gray-300 bg-gray-100 text-gray-900"
               >
-                <IoIosRemove size={18} color={"#111928"} />
+                <IoIosRemove size={18} color="#111928" />
               </button>
 
               <div className="flex text-sm h-9 w-12 items-center justify-center text-gray-500">
@@ -127,12 +214,10 @@ export default function AddEntryModal({
 
               <button
                 type="button"
-                onClick={() =>
-                  setHours((prev) => prev + 1)
-                }
+                onClick={() => setHours((prev) => prev + 1)}
                 className="h-9 w-8 flex items-center justify-center border-l border-gray-300 bg-gray-100 text-gray-900"
               >
-                <IoIosAdd size={18} color={"#111928"} />
+                <IoIosAdd size={18} color="#111928" />
               </button>
             </div>
           </div>
@@ -149,25 +234,13 @@ export default function AddEntryModal({
         </button>
 
         <button
-          onClick={() => {
-            if (selectedProject && selectedWorkType && description) {
-              onAddTask?.({
-                projectName: projectOptions.find(p => p.value === selectedProject)?.label || "",
-                workType: workTypeOptions.find(w => w.value === selectedWorkType)?.label || "",
-                description,
-                hours,
-              });
-              setHours(8);
-              setSelectedProject("");
-              setSelectedWorkType("");
-              setDescription("");
-              onClose();
-            }
-          }}
+          onClick={handleSubmit}
+          disabled={
+            !selectedProject || !selectedWorkType || !description
+          }
           className="h-9 flex-1 rounded-lg bg-[#1A56DB] text-white text-sm disabled:opacity-50"
-          disabled={!selectedProject || !selectedWorkType || !description}
         >
-          Add Entry
+          {taskToEdit ? "Save Changes" : "Add Entry"}
         </button>
       </DialogActions>
     </Dialog>

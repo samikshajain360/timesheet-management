@@ -88,6 +88,7 @@ export interface Task {
   taskName: string;
   hours: number;
   projectName: string;
+  workType?: string;
 }
 
 export interface Day {

@@ -11,12 +11,16 @@ import {
 interface DaySectionProps {
   day: Day;
   timesheetId: string;
+  totalHours: number;
+  targetHours: number;
   onTimesheetDetailChange: (detail: NonNullable<Timesheet["detail"]>) => void;
 }
 
 export default function DaySection({
   day,
   timesheetId,
+  totalHours,
+  targetHours,
   onTimesheetDetailChange,
 }: DaySectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,6 +81,11 @@ export default function DaySection({
     setEditingTask(null);
   };
 
+  const availableHours = Math.max(
+    0,
+    targetHours - totalHours + (editingTask?.hours ?? 0)
+  );
+
   return (
     <>
       <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row gap-4 sm:gap-6">
@@ -108,6 +117,7 @@ export default function DaySection({
         onClose={handleModalClose}
         onAddTask={handleAddTask}
         onUpdateTask={handleUpdateTask}
+        maxHours={availableHours}
         taskToEdit={
           editingTask
             ? {

@@ -21,6 +21,13 @@ export interface TaskUpdateInput extends TaskInput {
   id: string;
 }
 
+export class TimesheetHoursLimitError extends Error {
+  constructor(targetHours: number) {
+    super(`Timesheet cannot exceed ${targetHours} hrs`);
+    this.name = "TimesheetHoursLimitError";
+  }
+}
+
 const getCollection = async () => {
   const client = await clientPromise();
 
@@ -40,6 +47,14 @@ const recalculateTotalHours = (timesheet: TimesheetDocument) => {
   );
 
   return timesheet;
+};
+
+const assertWithinTargetHours = (timesheet: TimesheetDocument) => {
+  if (!timesheet.detail) return;
+
+  if (timesheet.detail.totalHours > timesheet.detail.targetHours) {
+    throw new TimesheetHoursLimitError(timesheet.detail.targetHours);
+  }
 };
 
 const seedTimesheetsIfEmpty = async () => {
@@ -97,6 +112,7 @@ export const addTaskToTimesheetDay = async (
   });
 
   recalculateTotalHours(timesheet);
+  assertWithinTargetHours(timesheet);
 
   const collection = await getCollection();
   await collection.updateOne(
@@ -134,6 +150,7 @@ export const updateTimesheetTask = async (
   if (!foundTask) return null;
 
   recalculateTotalHours(timesheet);
+  assertWithinTargetHours(timesheet);
 
   const collection = await getCollection();
   await collection.updateOne(

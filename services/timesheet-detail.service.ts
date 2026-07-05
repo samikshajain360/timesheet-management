@@ -13,6 +13,19 @@ export const getTimesheetDetail =
     return response.json();
   };
 
+const getResponseErrorMessage = async (
+  response: Response,
+  fallback: string
+) => {
+  try {
+    const data = await response.json();
+
+    return typeof data.error === "string" ? data.error : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export const addTimesheetTask = async (
   id: string,
   task: {
@@ -32,7 +45,9 @@ export const addTimesheetTask = async (
   });
 
   if (!response.ok) {
-    throw new Error("Failed to add timesheet task");
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to add timesheet task")
+    );
   }
 
   return response.json();
@@ -57,7 +72,9 @@ export const updateTimesheetTask = async (
   });
 
   if (!response.ok) {
-    throw new Error("Failed to update timesheet task");
+    throw new Error(
+      await getResponseErrorMessage(response, "Failed to update timesheet task")
+    );
   }
 
   return response.json();

@@ -67,6 +67,8 @@ export default function TimesheetDetailPage() {
             key={day.date}
             day={day}
             timesheetId={id}
+            totalHours={timesheetDetail.totalHours}
+            targetHours={timesheetDetail.targetHours}
             onTimesheetDetailChange={setTimesheetDetail}
           />
         ))}

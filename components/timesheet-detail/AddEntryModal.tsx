@@ -52,6 +52,7 @@ interface Props {
   onAddTask?: (task: TaskFormData) => void | Promise<void>;
   onUpdateTask?: (task: TaskFormData & { id: string }) => void | Promise<void>;
   taskToEdit?: (TaskFormData & { id: string }) | null;
+  maxHours?: number;
 }
 
 export default function AddEntryModal({
@@ -60,6 +61,7 @@ export default function AddEntryModal({
   onAddTask,
   onUpdateTask,
   taskToEdit,
+  maxHours = 40,
 }: Props) {
   const [hours, setHours] = useState(8);
   const [selectedProject, setSelectedProject] = useState("");
@@ -92,18 +94,22 @@ useEffect(() => {
     }
 
     setDescription(taskToEdit.description ?? "");
-    setHours(taskToEdit.hours ?? 8);
+    setHours(Math.min(taskToEdit.hours ?? 8, maxHours));
   } else {
     // Reset form for Add mode
-    setHours(8);
+    setHours(Math.min(8, maxHours));
     setSelectedProject("");
     setSelectedWorkType(WORKTYPE_OPTIONS[0].value);
     setDescription("");
   }
-}, [open, taskToEdit]);
+}, [open, taskToEdit, maxHours]);
 
   const handleSubmit = async () => {
     if (!selectedProject || !selectedWorkType || !description) return;
+    if (hours > maxHours) {
+      toast.error(`Only ${maxHours} hrs available`);
+      return;
+    }
 
     const taskData = {
       id: taskToEdit?.id,
@@ -129,8 +135,10 @@ useEffect(() => {
       setSelectedWorkType("");
       setDescription("");
       onClose();
-    } catch {
-      toast.error("Unable to save task");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to save task"
+      );
     } finally {
       setSaving(false);
     }
@@ -224,7 +232,8 @@ useEffect(() => {
 
               <button
                 type="button"
-                onClick={() => setHours((prev) => prev + 1)}
+                onClick={() => setHours((prev) => Math.min(maxHours, prev + 1))}
+                disabled={hours >= maxHours}
                 className="h-9 w-8 flex items-center justify-center border-l border-gray-300 bg-gray-100 text-gray-900"
               >
                 <IoIosAdd size={18} color="#111928" />

@@ -1,4 +1,7 @@
-import { addTaskToTimesheetDay } from "@/lib/timesheets";
+import {
+  TimesheetHoursLimitError,
+  addTaskToTimesheetDay,
+} from "@/lib/timesheets";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -22,19 +25,33 @@ export async function POST(
     return NextResponse.json({ error: "Missing task fields" }, { status: 400 });
   }
 
-  const detail = await addTaskToTimesheetDay(weekNumber, body.dayDate, {
-    projectName: body.projectName,
-    workType: body.workType,
-    description: body.description,
-    hours: Number(body.hours),
-  });
+  const hours = Number(body.hours);
 
-  if (!detail) {
-    return NextResponse.json(
-      { error: "Timesheet day not found" },
-      { status: 404 }
-    );
+  if (!Number.isFinite(hours) || hours < 0) {
+    return NextResponse.json({ error: "Invalid task hours" }, { status: 400 });
   }
 
-  return NextResponse.json(detail, { status: 201 });
+  try {
+    const detail = await addTaskToTimesheetDay(weekNumber, body.dayDate, {
+      projectName: body.projectName,
+      workType: body.workType,
+      description: body.description,
+      hours,
+    });
+
+    if (!detail) {
+      return NextResponse.json(
+        { error: "Timesheet day not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(detail, { status: 201 });
+  } catch (error) {
+    if (error instanceof TimesheetHoursLimitError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    throw error;
+  }
 }

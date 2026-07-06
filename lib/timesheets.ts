@@ -5,6 +5,8 @@ import { Timesheet } from "@/types/propsTypes";
 const DATABASE_NAME = process.env.MONGODB_DB ?? "timesheet_management";
 const COLLECTION_NAME = "timesheets";
 
+const getMockTimesheets = () => structuredClone(mockTimesheets) as Timesheet[];
+
 type TimesheetDocument = Timesheet & {
   createdAt?: Date;
   updatedAt?: Date;
@@ -29,11 +31,18 @@ export class TimesheetHoursLimitError extends Error {
 }
 
 const getCollection = async () => {
-  const client = await clientPromise();
+  try {
+    const client = await clientPromise();
 
-  return client
-    .db(DATABASE_NAME)
-    .collection<TimesheetDocument>(COLLECTION_NAME);
+    return client
+      .db(DATABASE_NAME)
+      .collection<TimesheetDocument>(COLLECTION_NAME);
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[timesheets] getCollection failed:', msg);
+    throw err;
+  }
 };
 
 const recalculateTotalHours = (timesheet: TimesheetDocument) => {
@@ -75,19 +84,31 @@ const seedTimesheetsIfEmpty = async () => {
 };
 
 export const getTimesheetsFromDb = async () => {
-  await seedTimesheetsIfEmpty();
+  try {
+    await seedTimesheetsIfEmpty();
 
-  const collection = await getCollection();
+    const collection = await getCollection();
 
-  return collection.find({}, { projection: { _id: 0 } }).sort({ week: 1 }).toArray();
+    return collection.find({}, { projection: { _id: 0 } }).sort({ week: 1 }).toArray();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[timesheets] DB unavailable, returning mock timesheets:', msg);
+    return getMockTimesheets();
+  }
 };
 
 export const getTimesheetByWeek = async (week: number) => {
-  await seedTimesheetsIfEmpty();
+  try {
+    await seedTimesheetsIfEmpty();
 
-  const collection = await getCollection();
+    const collection = await getCollection();
 
-  return collection.findOne({ week }, { projection: { _id: 0 } });
+    return collection.findOne({ week }, { projection: { _id: 0 } });
+  } catch (err) {
+    const mockTimesheets = getMockTimesheets();
+    return mockTimesheets.find((timesheet) => timesheet.week === week) ?? null;
+  }
 };
 
 export const addTaskToTimesheetDay = async (

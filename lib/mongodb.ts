@@ -28,7 +28,8 @@ const clientPromise = () => {
     } catch (err) {
       // Log masked URI and error for debugging in Vercel logs (no secrets)
       // eslint-disable-next-line no-console
-      console.error('[mongodb] connection failure to', maskedUri, err && err.message ? err.message : err);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('[mongodb] connection failure to', maskedUri, msg);
       throw err;
     }
   };

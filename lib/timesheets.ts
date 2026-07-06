@@ -66,11 +66,18 @@ const assertWithinTargetHours = (timesheet: TimesheetDocument) => {
   }
 };
 
+let hasSeededTimesheets = false;
+
 const seedTimesheetsIfEmpty = async () => {
+  if (hasSeededTimesheets) return;
+
   const collection = await getCollection();
   const count = await collection.estimatedDocumentCount();
 
-  if (count > 0) return;
+  if (count > 0) {
+    hasSeededTimesheets = true;
+    return;
+  }
 
   const now = new Date();
   const seedData = mockTimesheets.map((timesheet) => ({
@@ -81,6 +88,7 @@ const seedTimesheetsIfEmpty = async () => {
 
   await collection.insertMany(seedData);
   await collection.createIndex({ week: 1 }, { unique: true });
+  hasSeededTimesheets = true;
 };
 
 export const getTimesheetsFromDb = async () => {
@@ -98,13 +106,17 @@ export const getTimesheetsFromDb = async () => {
   }
 };
 
+export const getTimesheetByWeekFromDb = async (week: number) => {
+  await seedTimesheetsIfEmpty();
+
+  const collection = await getCollection();
+
+  return collection.findOne({ week }, { projection: { _id: 0 } });
+};
+
 export const getTimesheetByWeek = async (week: number) => {
   try {
-    await seedTimesheetsIfEmpty();
-
-    const collection = await getCollection();
-
-    return collection.findOne({ week }, { projection: { _id: 0 } });
+    return await getTimesheetByWeekFromDb(week);
   } catch (err) {
     const mockTimesheets = getMockTimesheets();
     return mockTimesheets.find((timesheet) => timesheet.week === week) ?? null;
@@ -116,7 +128,7 @@ export const addTaskToTimesheetDay = async (
   dayDate: string,
   input: TaskInput
 ) => {
-  const timesheet = await getTimesheetByWeek(week);
+  const timesheet = await getTimesheetByWeekFromDb(week);
 
   if (!timesheet?.detail) return null;
 
@@ -149,7 +161,7 @@ export const updateTimesheetTask = async (
   taskId: string,
   input: TaskInput
 ) => {
-  const timesheet = await getTimesheetByWeek(week);
+  const timesheet = await getTimesheetByWeekFromDb(week);
 
   if (!timesheet?.detail) return null;
 
@@ -183,7 +195,7 @@ export const updateTimesheetTask = async (
 };
 
 export const deleteTimesheetTask = async (week: number, taskId: string) => {
-  const timesheet = await getTimesheetByWeek(week);
+  const timesheet = await getTimesheetByWeekFromDb(week);
 
   if (!timesheet?.detail) return null;
 

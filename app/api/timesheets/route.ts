@@ -33,17 +33,21 @@ export async function GET(request: NextRequest) {
       const itemEnd = new Date(item.endDate);
       const start = startDate ? new Date(startDate) : new Date(-8640000000000000);
       const end = endDate ? new Date(endDate) : new Date(8640000000000000);
-      
+
       // Normalize all dates to UTC midnight for consistent comparison
       const itemStartUTC = Date.UTC(itemStart.getUTCFullYear(), itemStart.getUTCMonth(), itemStart.getUTCDate());
       const itemEndUTC = Date.UTC(itemEnd.getUTCFullYear(), itemEnd.getUTCMonth(), itemEnd.getUTCDate());
       const startUTC = Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate());
       const endUTC = Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), end.getUTCDate());
-      
+
       // Check if the week range overlaps with the selected date range
       return itemStartUTC <= endUTC && itemEndUTC >= startUTC;
     });
   }
 
-  return NextResponse.json(filteredData);
+  return NextResponse.json(filteredData, {
+    headers: {
+      "Cache-Control": "public, s-maxage=30, stale-while-revalidate=59",
+    },
+  });
 }

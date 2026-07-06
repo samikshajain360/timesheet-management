@@ -1,6 +1,12 @@
 import { MongoClient } from "mongodb";
 
-const options = {};
+const options = {
+  maxPoolSize: 10,
+  minPoolSize: 1,
+  connectTimeoutMS: 10000,
+  serverSelectionTimeoutMS: 10000,
+  socketTimeoutMS: 45000,
+};
 
 const globalForMongo = globalThis as typeof globalThis & {
   _mongoClientPromise?: Promise<MongoClient>;
@@ -36,18 +42,12 @@ const clientPromise = () => {
     }
   };
 
-  if (process.env.NODE_ENV === "development") {
-    if (!globalForMongo._mongoClientPromise) {
-      const client = new MongoClient(uri, options);
-      globalForMongo._mongoClientPromise = connectClient(client);
-    }
-
-    return globalForMongo._mongoClientPromise;
+  if (!globalForMongo._mongoClientPromise) {
+    const client = new MongoClient(uri, options);
+    globalForMongo._mongoClientPromise = connectClient(client);
   }
 
-  const client = new MongoClient(uri, options);
-
-  return connectClient(client);
+  return globalForMongo._mongoClientPromise;
 };
 
 export default clientPromise;

@@ -1,1 +1,16 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Prevent committing environment files that may contain secrets.
+# Allow `.env.example` but block other `.env*` files.
+staged=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.env($|\.|/)' | grep -v '\.env.example' || true)
+
+if [ -n "$staged" ]; then
+  echo "Error: Attempt to commit environment file(s):"
+  echo "$staged"
+  echo "Remove them from the commit and ensure they are added to .gitignore."
+  exit 1
+fi
+
+exit 0
 npx lint-staged

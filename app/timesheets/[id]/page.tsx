@@ -14,7 +14,8 @@ export default function TimesheetDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { timesheetDetail, loading, error } = useTimesheetDetail(id);
+  const { timesheetDetail, setTimesheetDetail, loading, error } =
+    useTimesheetDetail(id);
 
   if (loading) {
     return <DetailSkeleton />;
@@ -62,7 +63,14 @@ export default function TimesheetDetailPage() {
 
       <div className="mt-4 sm:mt-6">
         {timesheetDetail.days.map((day: Day) => (
-          <DaySection key={day.date} day={day} />
+          <DaySection
+            key={day.date}
+            day={day}
+            timesheetId={id}
+            totalHours={timesheetDetail.totalHours}
+            targetHours={timesheetDetail.targetHours}
+            onTimesheetDetailChange={setTimesheetDetail}
+          />
         ))}
       </div>
     </div>

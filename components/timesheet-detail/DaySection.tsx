@@ -1,21 +1,90 @@
 import TaskRow from "./TaskRow";
 import AddEntryModal from "./AddEntryModal";
 import { useState } from "react";
-import { Day, Task } from "@/types/propsTypes";
+import { Day, Task, Timesheet } from "@/types/propsTypes";
+import {
+  addTimesheetTask,
+  deleteTimesheetTask,
+  updateTimesheetTask,
+} from "@/services/timesheet-detail.service";
 
-export default function DaySection({ day }: { day: Day }) {
+interface DaySectionProps {
+  day: Day;
+  timesheetId: string;
+  totalHours: number;
+  targetHours: number;
+  onTimesheetDetailChange: (detail: NonNullable<Timesheet["detail"]>) => void;
+}
+
+export default function DaySection({
+  day,
+  timesheetId,
+  totalHours,
+  targetHours,
+  onTimesheetDetailChange,
+}: DaySectionProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>(day.tasks);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
-  const handleAddTask = (newTaskData: { projectName: string; workType: string; description: string; hours: number }) => {
-    const newTask: Task = {
-      id: `${Date.now()}-${Math.random()}`,
-      taskName: newTaskData.description,
-      hours: newTaskData.hours,
-      projectName: newTaskData.projectName,
-    };
-    setTasks([...tasks, newTask]);
+  const handleAddTask = async (newTaskData: {
+    projectName: string;
+    workType: string;
+    description: string;
+    hours: number;
+  }) => {
+    const updatedDetail = await addTimesheetTask(timesheetId, {
+      dayDate: day.date,
+      ...newTaskData,
+    });
+
+    onTimesheetDetailChange(updatedDetail);
   };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setIsModalOpen(true);
+  };
+
+  const handleUpdateTask = async (updatedTask: {
+    id: string;
+    projectName: string;
+    workType: string;
+    description: string;
+    hours: number;
+  }) => {
+    const updatedDetail = await updateTimesheetTask(timesheetId, {
+      taskId: updatedTask.id,
+      projectName: updatedTask.projectName,
+      workType: updatedTask.workType,
+      description: updatedTask.description,
+      hours: updatedTask.hours,
+    });
+
+    onTimesheetDetailChange(updatedDetail);
+    setEditingTask(null);
+    setIsModalOpen(false);
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    const updatedDetail = await deleteTimesheetTask(timesheetId, taskId);
+
+    onTimesheetDetailChange(updatedDetail);
+
+    if (editingTask?.id === taskId) {
+      setEditingTask(null);
+      setIsModalOpen(false);
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setEditingTask(null);
+  };
+
+  const availableHours = Math.max(
+    0,
+    targetHours - totalHours + (editingTask?.hours ?? 0)
+  );
 
   return (
     <>
@@ -25,8 +94,13 @@ export default function DaySection({ day }: { day: Day }) {
         </div>
 
         <div className="flex-1">
-          {tasks.map((task: Task) => (
-            <TaskRow key={task.id} task={task} />
+          {day.tasks.map((task: Task) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              onEdit={() => handleEditTask(task)}
+              onDelete={() => handleDeleteTask(task.id)}
+            />
           ))}
 
           <button
@@ -38,7 +112,22 @@ export default function DaySection({ day }: { day: Day }) {
         </div>
       </div>
 
-      <AddEntryModal open={isModalOpen} onClose={() => setIsModalOpen(false)} onAddTask={handleAddTask} />
+      <AddEntryModal
+        open={isModalOpen}
+        onClose={handleModalClose}
+        onAddTask={handleAddTask}
+        onUpdateTask={handleUpdateTask}
+        maxHours={availableHours}
+        taskToEdit={
+          editingTask
+            ? {
+              ...editingTask,
+              description: editingTask.taskName,
+              workType: editingTask.workType ?? "Bug fixes",
+            }
+            : null
+        }
+      />
     </>
   );
 }

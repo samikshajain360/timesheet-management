@@ -49,6 +49,7 @@ export default function CustomDropdown({
           onClick={() => setIsOpen(!isOpen)}
           className={`
             h-[42px]
+            w-full
             rounded-md
             border
             border-[#E0E0E0]
@@ -67,9 +68,8 @@ export default function CustomDropdown({
           </span>
           <FiChevronDown
             size={16}
-            className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-transform ${
-              isOpen ? "rotate-180" : ""
-            }`}
+            className={`absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""
+              }`}
           />
         </button>
 

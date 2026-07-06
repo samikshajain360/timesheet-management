@@ -5,7 +5,37 @@ import { Timesheet } from "@/types/propsTypes";
 const DATABASE_NAME = process.env.MONGODB_DB ?? "timesheet_management";
 const COLLECTION_NAME = "timesheets";
 
-const getMockTimesheets = () => structuredClone(mockTimesheets) as Timesheet[];
+let inMemoryTimesheets: Timesheet[] | null = null;
+
+const ensureInMemoryTimesheets = () => {
+  if (!inMemoryTimesheets) {
+    inMemoryTimesheets = structuredClone(mockTimesheets) as Timesheet[];
+  }
+
+  return inMemoryTimesheets;
+};
+
+const getMockTimesheets = () => structuredClone(ensureInMemoryTimesheets()) as Timesheet[];
+
+const getInMemoryTimesheet = (week: number) => {
+  const list = ensureInMemoryTimesheets();
+  return list.find((timesheet) => timesheet.week === week) ?? null;
+};
+
+const saveInMemoryTimesheet = (timesheet: TimesheetDocument) => {
+  const list = ensureInMemoryTimesheets();
+  const index = list.findIndex((item) => item.week === timesheet.week);
+
+  const updated = structuredClone(timesheet) as Timesheet;
+
+  if (index >= 0) {
+    list[index] = updated;
+  } else {
+    list.push(updated);
+  }
+
+  return updated;
+};
 
 type TimesheetDocument = Timesheet & {
   createdAt?: Date;
@@ -123,12 +153,25 @@ export const getTimesheetByWeek = async (week: number) => {
   }
 };
 
+const getTimesheetByWeekFromFallback = (week: number) => {
+  const timesheet = getInMemoryTimesheet(week);
+  return timesheet ? structuredClone(timesheet) as TimesheetDocument : null;
+};
+
 export const addTaskToTimesheetDay = async (
   week: number,
   dayDate: string,
   input: TaskInput
 ) => {
-  const timesheet = await getTimesheetByWeekFromDb(week);
+  let timesheet: TimesheetDocument | null;
+  let useFallback = false;
+
+  try {
+    timesheet = await getTimesheetByWeekFromDb(week);
+  } catch (err) {
+    useFallback = true;
+    timesheet = getTimesheetByWeekFromFallback(week);
+  }
 
   if (!timesheet?.detail) return null;
 
@@ -147,13 +190,26 @@ export const addTaskToTimesheetDay = async (
   recalculateTotalHours(timesheet);
   assertWithinTargetHours(timesheet);
 
-  const collection = await getCollection();
-  await collection.updateOne(
-    { week },
-    { $set: { detail: timesheet.detail, updatedAt: new Date() } }
-  );
+  if (useFallback) {
+    saveInMemoryTimesheet(timesheet);
+    return timesheet.detail;
+  }
 
-  return timesheet.detail;
+  try {
+    const collection = await getCollection();
+    await collection.updateOne(
+      { week },
+      { $set: { detail: timesheet.detail, updatedAt: new Date() } }
+    );
+
+    return timesheet.detail;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[timesheets] DB write failed, using fallback:', msg);
+    saveInMemoryTimesheet(timesheet);
+    return timesheet.detail;
+  }
 };
 
 export const updateTimesheetTask = async (
@@ -161,7 +217,15 @@ export const updateTimesheetTask = async (
   taskId: string,
   input: TaskInput
 ) => {
-  const timesheet = await getTimesheetByWeekFromDb(week);
+  let timesheet: TimesheetDocument | null;
+  let useFallback = false;
+
+  try {
+    timesheet = await getTimesheetByWeekFromDb(week);
+  } catch (err) {
+    useFallback = true;
+    timesheet = getTimesheetByWeekFromFallback(week);
+  }
 
   if (!timesheet?.detail) return null;
 
@@ -185,17 +249,38 @@ export const updateTimesheetTask = async (
   recalculateTotalHours(timesheet);
   assertWithinTargetHours(timesheet);
 
-  const collection = await getCollection();
-  await collection.updateOne(
-    { week },
-    { $set: { detail: timesheet.detail, updatedAt: new Date() } }
-  );
+  if (useFallback) {
+    saveInMemoryTimesheet(timesheet);
+    return timesheet.detail;
+  }
 
-  return timesheet.detail;
+  try {
+    const collection = await getCollection();
+    await collection.updateOne(
+      { week },
+      { $set: { detail: timesheet.detail, updatedAt: new Date() } }
+    );
+
+    return timesheet.detail;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[timesheets] DB write failed, using fallback:', msg);
+    saveInMemoryTimesheet(timesheet);
+    return timesheet.detail;
+  }
 };
 
 export const deleteTimesheetTask = async (week: number, taskId: string) => {
-  const timesheet = await getTimesheetByWeekFromDb(week);
+  let timesheet: TimesheetDocument | null;
+  let useFallback = false;
+
+  try {
+    timesheet = await getTimesheetByWeekFromDb(week);
+  } catch (err) {
+    useFallback = true;
+    timesheet = getTimesheetByWeekFromFallback(week);
+  }
 
   if (!timesheet?.detail) return null;
 
@@ -218,11 +303,24 @@ export const deleteTimesheetTask = async (week: number, taskId: string) => {
 
   recalculateTotalHours(timesheet);
 
-  const collection = await getCollection();
-  await collection.updateOne(
-    { week },
-    { $set: { detail: timesheet.detail, updatedAt: new Date() } }
-  );
+  if (useFallback) {
+    saveInMemoryTimesheet(timesheet);
+    return timesheet.detail;
+  }
 
-  return timesheet.detail;
+  try {
+    const collection = await getCollection();
+    await collection.updateOne(
+      { week },
+      { $set: { detail: timesheet.detail, updatedAt: new Date() } }
+    );
+
+    return timesheet.detail;
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[timesheets] DB write failed, using fallback:', msg);
+    saveInMemoryTimesheet(timesheet);
+    return timesheet.detail;
+  }
 };
